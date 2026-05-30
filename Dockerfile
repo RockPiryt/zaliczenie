@@ -1,13 +1,16 @@
-FROM node:20-alpine
+FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY requirements.txt .
 
-RUN npm ci --omit=dev
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY app ./app
 
-EXPOSE 3000
+RUN useradd -m appuser
+USER appuser
 
-CMD ["npm", "start"]
+EXPOSE 8000
+
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "app.main:app"]
