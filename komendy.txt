@@ -1,0 +1,106 @@
+Healthcheck
+docker compose up -d --build
+docker compose ps
+NAME                 SERVICE   STATUS
+product-db-1         db        Up (healthy)
+product-cache-1      cache     Up (healthy)
+product-backend-1    backend   Up
+product-nginx-1      nginx     Up
+
+
+Dlatego dla produkcji bez override trzeba uruchamiać:
+
+    docker compose -f compose.yml up -d
+
+A dla developmentu:
+    docker compose up -d
+albo jawnie:
+    docker compose -f compose.yml -f compose.override.yml up -d
+
+--------------------------
+Persystencja PostgreSQL
+curl -X POST http://localhost/api/items \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Persistent Product","price":123.45}'
+
+docker compose down
+docker compose up -d
+
+curl http://localhost/api/items
+
+Wynik zawiera:
+
+{
+  "name": "Persistent Product",
+  "price": 123.45
+}
+-----------------------------------
+Cache Redis
+curl http://localhost/api/items
+curl http://localhost/api/items
+curl http://localhost/api/stats
+
+Wynik /api/stats:
+
+{
+  "totalProducts": 1,
+  "cache_hits": 2
+}
+-----------------------------
+Profil tools
+docker compose --profile tools run --rm db-seed
+curl http://localhost:8080/api/items 
+bo wsl mam na :80
+
+Wynik zawiera:
+
+[
+  { "name": "Widget", "price": 9.99 },
+  { "name": "Gadget", "price": 24.99 },
+  { "name": "Doohickey", "price": 4.49 }
+]
+
+lub bezpośrednie sprawdzenie
+docker compose exec db psql -U products -d products -c "SELECT * FROM products;"
+--------------------------------
+Produkcja vs development
+
+Bez override:
+
+docker compose -f compose.yaml config | grep -A5 volumes
+
+Brak bind mountu ./backend:/app.
+
+Z override:
+
+docker compose -f compose.yaml -f compose.override.yaml config | grep -A5 volumes
+
+Widoczne:
+
+volumes:
+  - type: bind
+    source: ./backend
+    target: /app
+
+
+    ------------------
+
+    🔹 Persystencja PostgreSQL
+POST
+Invoke-RestMethod `
+  -Uri http://localhost:8080/api/items `
+  -Method Post `
+  -ContentType "application/json" `
+  -Body '{"name":"Persistent Product","price":123.45}'
+GET
+Invoke-RestMethod http://localhost:8080/api/items
+🔹 Cache Redis
+Invoke-RestMethod http://localhost:8080/api/items
+Invoke-RestMethod http://localhost:8080/api/items
+Invoke-RestMethod http://localhost:8080/api/stats
+🔹 Profil tools
+docker compose --profile tools run --rm db-seed
+
+Sprawdzenie:
+
+Invoke-RestMethod http://localhost:8080/api/items

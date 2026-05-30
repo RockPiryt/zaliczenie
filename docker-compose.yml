@@ -1,29 +1,27 @@
 services:
-  db:
-    image: postgres:16-alpine
+  app:
+    build: .
     environment:
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: app
-      POSTGRES_DB: app
+      DB_PATH: /data/app.db
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - sqlite_data:/data
+    expose:
+      - "8000"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 5s
       timeout: 3s
       retries: 10
 
-  app:
-    build: .
+  nginx:
+    image: nginx:1.27-alpine
     ports:
-      - "3000:3000"
-    environment:
-      NODE_ENV: production
-      PORT: 3000
-      DATABASE_URL: postgres://app:app@db:5432/app
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      db:
+      app:
         condition: service_healthy
 
 volumes:
-  postgres_data:
+  sqlite_data:
